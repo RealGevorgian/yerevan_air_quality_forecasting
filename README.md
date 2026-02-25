@@ -171,7 +171,7 @@ You will see a menu with the following options:
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
-║            YEREVAN AIR QUALITY & HEALTH ASSESSMENT               ║
+║                        YEREVAN AIR QUALITY                       ║
 ╚══════════════════════════════════════════════════════════════════╝
 
  MAIN MENU:
@@ -278,13 +278,6 @@ Illustrates temporal trends and seasonal patterns across Yerevan.
 
 ---
 
-## District Comparison – January 2025
-
-![District Comparison](district_comparison_2025_01.png)
-
-Highlights pollution inequality across districts.
-
----
 
 ## Pollution Time Series – September 2022
 
