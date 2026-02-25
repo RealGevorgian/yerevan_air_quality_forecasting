@@ -1,0 +1,15 @@
+YEREVAN AIR QUALITY HEALTH RISK REPORT
+==================================================
+
+Generated: 2026-02-25 04:11:28.564874
+
+Sensor 41 (Avan):
+  Mean PM2.5: 51.9 µg/m³
+  Risk Level: Hazardous
+  Data Points: 10
+
+Sensor 4 (Arabkir):
+  Mean PM2.5: 100.6 µg/m³
+  Risk Level: Hazardous
+  Data Points: 200
+

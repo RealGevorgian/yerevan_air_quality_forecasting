@@ -259,15 +259,85 @@ python -m src.visualization.plots
 python test_imports.py
 ```
 
-## Model Performance
+---
+# Exploratory Data Analysis (Examples)
 
-The project implements three modeling approaches:
+## PM2.5 Distribution
 
-| Model | Sensor 41 | Sensor 45 | Sensor 50 |
-|-------|-----------|-----------|-----------|
-| XGBoost | RMSE: 4.36, R²: 0.932 | RMSE: 1.63, R²: 0.905 | RMSE: 14.39, R²: 0.724 |
-| Random Forest | RMSE: 4.97, R²: 0.912 | RMSE: 1.55, R²: 0.914 | RMSE: 14.57, R²: 0.717 |
-| ARIMA | RMSE: 18.26, R²: -0.188 | RMSE: 5.14, R²: 0.062 | RMSE: 28.01, R²: -0.046 |
+![PM2.5 Distribution](pm25_distribution.png)
+
+Shows distribution patterns, skewness, and pollution concentration ranges.
+
+---
+
+## City Daily Average PM2.5
+
+![City Daily Average](city_daily_average.png)
+
+Illustrates temporal trends and seasonal patterns across Yerevan.
+
+---
+
+## District Comparison – January 2025
+
+![District Comparison](district_comparison_2025_01.png)
+
+Highlights pollution inequality across districts.
+
+---
+
+## Pollution Time Series – September 2022
+
+![Pollution Diagram 2022-09](pollution_diagram_2022_09.png)
+
+Detailed breakdown of daily averages and hourly cycles.
+
+---
+
+## Pollution Time Series – December 2025
+
+![Pollution Diagram 2025-12](pollution_diagram_2025_12.png)
+
+Demonstrates winter pollution spikes and variance.
+
+---
+
+# Model Performance & Prediction Examples
+
+## Sensor 41 – Detailed Analysis
+
+![Sensor 41 Analysis](sensor_41_analysis.png)
+
+Feature importance, rolling averages, and prediction alignment.
+
+---
+
+## Predictions – Sensor 41
+
+![Predictions Sensor 41](predictions_sensor_41.png)
+
+---
+
+## Predictions – Sensor 45
+
+![Predictions Sensor 45](predictions_sensor_45.png)
+
+---
+
+## Predictions – Sensor 50
+
+![Predictions Sensor 50](predictions_sensor_50.png)
+
+Models compared:
+
+| Model         | Sensor 41               | Sensor 45             | Sensor 50               |
+| ------------- | ----------------------- | --------------------- | ----------------------- |
+| XGBoost       | RMSE: 4.36, R²: 0.932   | RMSE: 1.63, R²: 0.905 | RMSE: 14.39, R²: 0.724  |
+| Random Forest | RMSE: 4.97, R²: 0.912   | RMSE: 1.55, R²: 0.914 | RMSE: 14.57, R²: 0.717  |
+| ARIMA         | RMSE: 18.26, R²: -0.188 | RMSE: 5.14, R²: 0.062 | RMSE: 28.01, R²: -0.046 |
+
+
+
 
 ### Key Findings
 
@@ -345,5 +415,5 @@ This project is for educational and research purposes. Data source: airquality.a
 
 - Data provided by [airquality.am](https://airquality.am)
 - WHO guidelines for air quality and health impact assessment
-- AUA Air Quality Lab for the research opportunity
+
 

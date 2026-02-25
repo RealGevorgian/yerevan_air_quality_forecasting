@@ -160,14 +160,14 @@ class AirQualityMenu:
 
     def get_live_data(self, sensor_id):
         """
-        Get live data from web scraping (cached for 5 minutes).
+        Get live data from the latest CSV file (cached for 5 minutes).
         """
         # Check cache
         if self.cache_time and time.time() - self.cache_time < 300:
             return self.live_cache.get(sensor_id)
 
         # Fetch new data
-        print("\n  📡 Fetching live data from airquality.am...")
+        print("\n  📥 Downloading latest sensor data from airquality.am...")
         readings = self.web_scraper.get_current_readings()
 
         # Update cache
@@ -176,13 +176,18 @@ class AirQualityMenu:
             if r.get('sensor_id'):
                 self.live_cache[r['sensor_id']] = r
 
-        # Store city-wide reading
-        city_reading = self.web_scraper.get_city_reading()
-        if city_reading:
-            self.live_cache[0] = city_reading
-
-        self.summary_stats = self.web_scraper.get_summary_stats()
         self.cache_time = time.time()
+
+        # Calculate summary statistics
+        if readings:
+            pm25_values = [r['pm25'] for r in readings if r.get('pm25')]
+            if pm25_values:
+                self.summary_stats = {
+                    'avg_pm25': np.mean(pm25_values),
+                    'max_pm25': np.max(pm25_values),
+                    'min_pm25': np.min(pm25_values),
+                    'sensor_count': len(pm25_values)
+                }
 
         return self.live_cache.get(sensor_id)
 

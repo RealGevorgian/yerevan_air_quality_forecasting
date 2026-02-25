@@ -1,0 +1,297 @@
+# Yerevan Air Quality Prediction & Health Risk Assessment
+
+A complete end‑to‑end data science pipeline for predicting PM2.5 levels in Yerevan and estimating associated health risks using large‑scale monitoring data from airquality.am.
+
+This project demonstrates:
+
+* Large‑scale CSV ingestion (2.32GB of historical data)
+* Data cleaning and harmonization across 605 monitoring locations
+* Exploratory data analysis and statistical insights
+* Machine learning modeling (XGBoost, Random Forest, ARIMA)
+* Health impact estimation based on WHO guidelines
+* Interactive CLI interface for real‑time air quality queries
+* Automated web scraping for live sensor updates
+
+---
+
+# Project Highlights
+
+* Processed **2.32GB** of raw air quality data
+* Built high‑performance ML models with **R² up to 0.932**
+* Implemented health risk estimation framework
+* Created interactive CLI for real‑time analysis
+* Generated automated visual reports and diagrams
+
+---
+
+# Project Structure
+
+```
+yerevan_air_quality_project/
+│
+├── .venv/
+│
+├── data/
+│   ├── processed/
+│   └── raw/
+│       ├── measurements/
+│       └── sensors.csv
+│
+├── models/
+│   ├── sensor_41_results.csv
+│   ├── sensor_41_xgboost.pkl
+│   ├── sensor_45_random_forest.pkl
+│   ├── sensor_45_results.csv
+│   ├── sensor_50_results.csv
+│   └── sensor_50_xgboost.pkl
+│
+├── notebooks/
+│   ├── 01_data_exploration.ipynb
+│   └── 02_raw_data_exploration.ipynb
+│
+├── reports/
+│
+├── src/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── data/
+│   │   ├── __init__.py
+│   │   ├── data_cleaning.py
+│   │   ├── data_loader.py
+│   │   ├── data_loader_final.py
+│   │   ├── data_loader_fixed.py
+│   │   └── web_scraper.py
+│   │
+│   ├── health/
+│   │   ├── __init__.py
+│   │   └── risk_estimation.py
+│   │
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── baseline_model.py
+│   │   ├── predict.py
+│   │   └── train_model.py
+│   │
+│   └── visualization/
+│       ├── __init__.py
+│       ├── config.py
+│       └── plots.py
+│
+├── check_data_structure.py
+├── city_daily_average.png
+├── cli.py
+├── debug_csv.py
+├── district_comparison_2025_01.png
+├── health_report_20260225.txt
+├── health_risk_report_2025_01.txt
+├── inspect_csv_structure.py
+├── peek_file.py
+├── pm25_distribution.png
+├── pollution_diagram_2022_09.png
+├── pollution_diagram_2025_12.png
+├── prediction_insights_sensor_41.txt
+├── prediction_insights_sensor_45.txt
+├── prediction_insights_sensor_50.txt
+├── predictions_sensor_41.png
+├── predictions_sensor_45.png
+├── predictions_sensor_50.png
+├── quick_analysis.py
+├── README.md
+├── requirements.txt
+├── sensor_41_analysis.png
+├── test_final_loader.py
+├── test_fixed_loader.py
+└── test_imports.py
+```
+
+---
+
+# Installation
+
+## Prerequisites
+
+* Python 3.8+
+* pip
+
+## Setup
+
+```bash
+git clone https://github.com/yourusername/yerevan_air_quality_project.git
+cd yerevan_air_quality_project
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+---
+
+# Data Source
+
+Data is obtained from:
+
+[https://airquality.am/data/](https://airquality.am/data/)
+
+Place downloaded CSV files in:
+
+```
+data/raw/measurements/
+```
+
+Include:
+
+* measurements_*.csv (2019–2026)
+* sensors.csv
+
+---
+
+# Exploratory Data Analysis (Examples)
+
+## PM2.5 Distribution
+
+![PM2.5 Distribution](pm25_distribution.png)
+
+Shows distribution patterns, skewness, and pollution concentration ranges.
+
+---
+
+## City Daily Average PM2.5
+
+![City Daily Average](city_daily_average.png)
+
+Illustrates temporal trends and seasonal patterns across Yerevan.
+
+---
+
+## District Comparison – January 2025
+
+![District Comparison](district_comparison_2025_01.png)
+
+Highlights pollution inequality across districts.
+
+---
+
+## Pollution Time Series – September 2022
+
+![Pollution Diagram 2022-09](pollution_diagram_2022_09.png)
+
+Detailed breakdown of daily averages and hourly cycles.
+
+---
+
+## Pollution Time Series – December 2025
+
+![Pollution Diagram 2025-12](pollution_diagram_2025_12.png)
+
+Demonstrates winter pollution spikes and variance.
+
+---
+
+# Model Performance & Prediction Examples
+
+## Sensor 41 – Detailed Analysis
+
+![Sensor 41 Analysis](sensor_41_analysis.png)
+
+Feature importance, rolling averages, and prediction alignment.
+
+---
+
+## Predictions – Sensor 41
+
+![Predictions Sensor 41](predictions_sensor_41.png)
+
+---
+
+## Predictions – Sensor 45
+
+![Predictions Sensor 45](predictions_sensor_45.png)
+
+---
+
+## Predictions – Sensor 50
+
+![Predictions Sensor 50](predictions_sensor_50.png)
+
+Models compared:
+
+| Model         | Sensor 41               | Sensor 45             | Sensor 50               |
+| ------------- | ----------------------- | --------------------- | ----------------------- |
+| XGBoost       | RMSE: 4.36, R²: 0.932   | RMSE: 1.63, R²: 0.905 | RMSE: 14.39, R²: 0.724  |
+| Random Forest | RMSE: 4.97, R²: 0.912   | RMSE: 1.55, R²: 0.914 | RMSE: 14.57, R²: 0.717  |
+| ARIMA         | RMSE: 18.26, R²: -0.188 | RMSE: 5.14, R²: 0.062 | RMSE: 28.01, R²: -0.046 |
+
+---
+
+# Health Impact Assessment
+
+Based on WHO guidelines:
+
+* WHO annual guideline: 5 µg/m³
+* WHO 24-hour guideline: 15 µg/m³
+* Excess mortality risk: 6.2% per 10 µg/m³ above guideline
+
+Example (January 2025):
+
+| District | Mean PM2.5 | Risk Level | Health Impact         |
+| -------- | ---------- | ---------- | --------------------- |
+| Avan     | 53.4 µg/m³ | Hazardous  | +47% excess mortality |
+| Ajapnyak | 58.3 µg/m³ | Hazardous  | +53% excess mortality |
+| Nor Nork | 12.4 µg/m³ | Moderate   | +9% excess mortality  |
+
+Population impact per million residents:
+
+* 3,636 premature deaths per year
+* 7,273 hospital admissions per year
+* 36,363 lost work days per year
+
+---
+
+# CLI Interface
+
+Run:
+
+```bash
+python cli.py
+```
+
+Main Menu:
+
+```
+1. Check current air quality (LIVE)
+2. Get hourly forecast
+3. Compare air quality across locations
+4. Generate health risk report
+5. Analyze historical trends
+6. Get personalized health advice
+7. Draw air pollution diagram
+8. List all available sensors
+0. Exit
+```
+
+---
+
+# Generated Outputs
+
+Running the system produces:
+
+* Prediction plots (`predictions_sensor_*.png`)
+* Health reports (`health_report_YYYYMMDD.txt`)
+* District comparison diagrams
+* Trained model artifacts (`.pkl` files)
+
+---
+
+# Troubleshooting
+
+* Run `python test_imports.py` for import errors
+* Ensure CSV files are correctly placed in `data/raw/measurements/`
+* Web scraping requires internet connection
+
+---
+
+# License
+
+Educational and research purposes only.
+
+---
+

@@ -1,191 +1,152 @@
 """
 Web scraper for real-time air quality data from airquality.am
-Targets the Yerevan city page with clean, structured information.
+Downloads and reads the latest hourly sensor data CSV file.
 """
 import requests
-from bs4 import BeautifulSoup
 import pandas as pd
+import numpy as np
 from datetime import datetime
-import re
-import json
+import time
+import io
+from pathlib import Path
 
 class AirQualityScraper:
     """
-    Scrapes real-time air quality data from airquality.am Yerevan page.
+    Downloads and parses the latest sensor_avg_hourly CSV file.
     """
 
     def __init__(self):
-        self.url = "https://airquality.am/en/air-quality/yerevan"
-        self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-        self.sensor_data = {}
+        self.base_url = "https://airquality.am/data/sensor_avg_hourly/"
+        self.current_year = datetime.now().year
+        self.cached_data = None
+        self.cache_time = None
+        self.cache_duration = 300  # 5 minutes in seconds
 
-    def get_current_readings(self):
+    def get_latest_file_url(self):
         """
-        Scrape current air quality readings for Yerevan.
-        Returns a list of sensor readings with detailed information.
+        Get the URL for the most recent sensor_avg_hourly CSV file.
         """
-        print("  Fetching real-time data from airquality.am...")
+        return f"{self.base_url}sensor_avg_hourly_{self.current_year}.csv"
+
+    def download_latest_data(self):
+        """
+        Download the latest sensor_avg_hourly CSV file.
+        """
+        url = self.get_latest_file_url()
 
         try:
-            response = requests.get(self.url, headers=self.headers, timeout=10)
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+
+            response = requests.get(url, headers=headers, timeout=15)
             response.raise_for_status()
 
-            soup = BeautifulSoup(response.text, 'html.parser')
+            # Read CSV data
+            # Note: First line is "SET", second line is header
+            csv_data = response.text
+            lines = csv_data.split('\n')
 
-            readings = []
+            # Skip the first line ("SET") and use second line as header
+            if len(lines) > 1 and lines[0].strip() == "SET":
+                header = lines[1].strip().split(',')
+                data_lines = lines[2:]
+                csv_content = '\n'.join([','.join(header)] + data_lines)
+            else:
+                csv_content = csv_data
 
-            # Extract main city-wide reading
-            city_reading = self._extract_city_reading(soup)
-            if city_reading:
-                readings.append(city_reading)
+            # Read into pandas DataFrame
+            df = pd.read_csv(io.StringIO(csv_content))
 
-            # Extract individual sensor cards
-            sensor_cards = soup.find_all('div', class_='sensor-card')
-            for card in sensor_cards:
-                sensor_data = self._extract_sensor_data(card)
-                if sensor_data:
-                    readings.append(sensor_data)
+            # Parse timestamp
+            if 'timestamp' in df.columns:
+                df['datetime'] = pd.to_datetime(df['timestamp'])
 
-            # Extract summary statistics
-            summary = self._extract_summary_stats(soup)
-            if summary:
-                self.summary_stats = summary
+            # Ensure PM2.5 column exists
+            pm25_col = None
+            for col in ['pm2.5', 'pm2.5_corrected', 'pm25']:
+                if col in df.columns:
+                    pm25_col = col
+                    break
 
-            return readings
+            if pm25_col and pm25_col != 'pm25':
+                df['pm25'] = df[pm25_col]
+
+            self.cached_data = df
+            self.cache_time = time.time()
+
+            return df
 
         except requests.RequestException as e:
-            print(f"  Error fetching data: {e}")
-            return []
+            print(f"  Error downloading data: {e}")
+            return None
         except Exception as e:
             print(f"  Error parsing data: {e}")
+            return None
+
+    def get_current_readings(self, force_refresh=False):
+        """
+        Get current readings for all sensors.
+        Uses cached data if available and not expired.
+        """
+        current_time = time.time()
+
+        # Check cache
+        if not force_refresh and self.cached_data is not None and self.cache_time:
+            if current_time - self.cache_time < self.cache_duration:
+                return self._extract_latest_readings()
+
+        # Download fresh data
+        df = self.download_latest_data()
+        if df is None:
             return []
 
-    def _extract_city_reading(self, soup):
+        return self._extract_latest_readings()
+
+    def _extract_latest_readings(self):
         """
-        Extract the main city-wide air quality reading.
+        Extract the most recent reading for each sensor.
         """
-        try:
-            # Find the main pollution level indicator
-            level_elem = soup.find('div', class_='pollution-level')
-            if level_elem:
-                level_text = level_elem.text.strip()
+        if self.cached_data is None:
+            return []
 
-                # Find the numeric value
-                value_elem = soup.find('span', class_='pollution-value')
-                pm25 = None
-                if value_elem:
-                    value_text = value_elem.text.strip()
-                    pm25_match = re.search(r'(\d+\.?\d*)', value_text)
-                    pm25 = float(pm25_match.group(1)) if pm25_match else None
+        df = self.cached_data
 
-                return {
-                    'sensor_id': 0,  # City-wide reading
-                    'location': 'Yerevan City',
-                    'pm25': pm25,
-                    'risk_level': level_text,
-                    'timestamp': datetime.now(),
-                    'source': 'web_scrape',
-                    'type': 'city_average'
-                }
-        except:
-            return None
+        # Get the latest timestamp
+        if 'datetime' in df.columns:
+            latest_time = df['datetime'].max()
+            latest_df = df[df['datetime'] == latest_time]
+        else:
+            # If no datetime, assume data is already latest
+            latest_df = df
 
-    def _extract_sensor_data(self, card):
-        """
-        Extract data from an individual sensor card.
-        """
-        try:
-            # Extract location
-            location_elem = card.find('div', class_='location')
-            location = location_elem.text.strip() if location_elem else "Unknown"
+        readings = []
+        for _, row in latest_df.iterrows():
+            reading = {
+                'sensor_id': row.get('sensor_id'),
+                'pm25': row.get('pm25'),
+                'timestamp': row.get('datetime') if 'datetime' in row else datetime.now(),
+                'source': 'CSV download',
+                'file_time': datetime.now().strftime('%Y-%m-%d %H:%M')
+            }
 
-            # Extract PM2.5 value
-            value_elem = card.find('span', class_='value')
-            pm25 = None
-            if value_elem:
-                value_text = value_elem.text.strip()
-                pm25_match = re.search(r'(\d+\.?\d*)', value_text)
-                pm25 = float(pm25_match.group(1)) if pm25_match else None
+            # Add other available columns
+            for col in ['temperature', 'humidity', 'pressure']:
+                if col in row:
+                    reading[col] = row[col]
 
-            # Extract risk level/color
-            risk_elem = card.find('span', class_='risk')
-            risk_level = risk_elem.text.strip() if risk_elem else "Unknown"
+            readings.append(reading)
 
-            # Try to extract sensor ID from data attribute or link
-            sensor_link = card.find('a', href=True)
-            sensor_id = None
-            if sensor_link:
-                href = sensor_link['href']
-                sensor_id_match = re.search(r'/sensor/(\d+)', href)
-                sensor_id = int(sensor_id_match.group(1)) if sensor_id_match else None
-
-            if pm25:
-                return {
-                    'sensor_id': sensor_id,
-                    'location': location,
-                    'pm25': pm25,
-                    'risk_level': risk_level,
-                    'timestamp': datetime.now(),
-                    'source': 'web_scrape',
-                    'type': 'sensor'
-                }
-        except:
-            pass
-        return None
-
-    def _extract_summary_stats(self, soup):
-        """
-        Extract summary statistics from the page.
-        """
-        summary = {}
-        try:
-            # Daily average
-            daily_elem = soup.find('div', class_='daily-average')
-            if daily_elem:
-                daily_text = daily_elem.text.strip()
-                daily_match = re.search(r'(\d+\.?\d*)', daily_text)
-                summary['daily_avg'] = float(daily_match.group(1)) if daily_match else None
-
-            # Yearly average
-            yearly_elem = soup.find('div', class_='yearly-average')
-            if yearly_elem:
-                yearly_text = yearly_elem.text.strip()
-                yearly_match = re.search(r'(\d+\.?\d*)', yearly_text)
-                summary['yearly_avg'] = float(yearly_match.group(1)) if yearly_match else None
-
-            # Days exceeding WHO
-            days_elem = soup.find('div', class_='exceeding-days')
-            if days_elem:
-                days_text = days_elem.text.strip()
-                days_match = re.search(r'(\d+)', days_text)
-                summary['days_exceeding_who'] = int(days_match.group(1)) if days_match else None
-
-            # Cigarette equivalent
-            cig_elem = soup.find('div', class_='cigarette-equivalent')
-            if cig_elem:
-                cig_text = cig_elem.text.strip()
-                cig_match = re.search(r'(\d+)', cig_text)
-                summary['cigarette_equivalent'] = int(cig_match.group(1)) if cig_match else None
-
-            return summary
-        except:
-            return None
+        return readings
 
     def get_sensor_reading(self, sensor_id):
         """
         Get current reading for a specific sensor.
         """
-        all_readings = self.get_current_readings()
+        readings = self.get_current_readings()
 
-        for reading in all_readings:
+        for reading in readings:
             if reading.get('sensor_id') == sensor_id:
-                return reading
-
-        # Return city average if sensor not found
-        for reading in all_readings:
-            if reading.get('type') == 'city_average':
                 return reading
 
         return None
@@ -201,35 +162,47 @@ class AirQualityScraper:
                 result[r['sensor_id']] = r
         return result
 
-    def get_summary_stats(self):
+    def get_recent_history(self, sensor_id, hours=24):
         """
-        Get summary statistics for Yerevan.
+        Get recent historical data for a specific sensor.
         """
-        if not hasattr(self, 'summary_stats'):
+        if self.cached_data is None:
             self.get_current_readings()
-        return getattr(self, 'summary_stats', {})
 
-    def get_city_reading(self):
-        """
-        Get the city-wide average reading.
-        """
-        readings = self.get_current_readings()
-        for r in readings:
-            if r.get('type') == 'city_average':
-                return r
-        return None
+        if self.cached_data is None:
+            return pd.DataFrame()
+
+        df = self.cached_data
+
+        if 'sensor_id' not in df.columns:
+            return pd.DataFrame()
+
+        sensor_df = df[df['sensor_id'] == sensor_id].copy()
+
+        if len(sensor_df) == 0:
+            return pd.DataFrame()
+
+        if 'datetime' in sensor_df.columns:
+            sensor_df = sensor_df.sort_values('datetime', ascending=False)
+            return sensor_df.head(hours)
+        else:
+            return sensor_df.head(hours)
 
 # Simple test if run directly
 if __name__ == "__main__":
     scraper = AirQualityScraper()
+
+    print("Downloading latest sensor data...")
     readings = scraper.get_current_readings()
 
-    print(f"\nFound {len(readings)} readings:")
-    for r in readings:
-        print(f"  {r.get('type', 'unknown')}: {r.get('location', 'N/A')} - {r.get('pm25', 'N/A')} µg/m³")
+    print(f"\nFound {len(readings)} sensors with current data")
 
-    summary = scraper.get_summary_stats()
-    if summary:
-        print(f"\nSummary Statistics:")
-        for key, value in summary.items():
-            print(f"  {key}: {value}")
+    if readings:
+        print("\nSample readings:")
+        for r in readings[:5]:
+            print(f"  Sensor {r['sensor_id']}: {r['pm25']} µg/m³")
+
+    # Test specific sensor
+    sensor_41 = scraper.get_sensor_reading(41)
+    if sensor_41:
+        print(f"\nSensor 41: {sensor_41}")
